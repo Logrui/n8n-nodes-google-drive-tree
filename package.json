@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-google-drive-tree",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Recursively builds a folder tree from Google Drive, listing all files and folders.",
   "keywords": [
     "n8n-community-node-package"
