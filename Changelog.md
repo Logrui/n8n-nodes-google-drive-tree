@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3-beta.6] - 2025-10-21
+
+### Fixed
+- **Metadata Only Toggle** - Fixed parameter reading scope issue
+  - Fixed parameter being read from wrong scope (options collection instead of top-level)
+  - Changed from `options.metadataOnly` to `this.getNodeParameter('metadataOnly', itemIndex)`
+  - Metadata Only toggle now properly prevents file downloads
+  - When enabled, only metadata is returned without binary content
+  - File downloads now only occur when toggle is disabled
+
 ## [1.0.3-beta.5] - 2025-10-21
 
 ### Fixed

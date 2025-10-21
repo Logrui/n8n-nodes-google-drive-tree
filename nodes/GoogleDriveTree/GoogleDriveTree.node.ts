@@ -929,7 +929,7 @@ export class GoogleDriveTree implements INodeType {
 				const propertiesToReturn = (options.propertiesToReturn as string) || 'both';
 				const fieldsToReturn = (options.fieldsToReturn as string[]) || ['id', 'name', 'mimeType'];
 				const returnAllFields = (options.returnAllFields as boolean) || false;
-				const metadataOnly = (options.metadataOnly as boolean) || false;
+				const metadataOnly = this.getNodeParameter('metadataOnly', itemIndex, false) as boolean;
 
 				// Build fields parameter based on user selection
 				let fieldsParam: string;					if (returnAllFields) {
