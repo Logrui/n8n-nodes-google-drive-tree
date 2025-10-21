@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3-beta.2] - 2025-10-21
+
+### Added
+- **Download File Operation** - New operation to download individual files from Google Drive
+  - File selection via resourceLocator with 3 modes: From List (searchable), By URL (auto-extract ID), By ID (direct input)
+  - Support for Google Workspace file format conversion (Docs/Sheets/Slides/Drawings to PDF/Word/Excel/OpenOffice)
+  - Dynamic metadata fields selection (size, dates, owners, permissions, custom properties)
+  - Custom properties support (Public Properties, App Properties, or Both)
+  - Permissions tracking when "Include Permissions" is enabled
+  - Return All Fields option for complete metadata
+  - Configurable binary output field name (default: "data")
+  - Binary file download with proper MIME type handling
+  - Error handling with continueOnFail support
+
+### Fixed
+- **Download File Metadata** - Enhanced to respect Fields to Return and Properties to Return selections
+  - Dynamically builds Google Drive API fields parameter
+  - Returns all selected metadata alongside binary file
+  - Maintains backwards compatibility with default field selections
+
 ## [1.0.2] - 2025-10-21
 
 ### Added
