@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.1-beta.23] - 2025-10-21
+## [1.0.1] - 2025-10-21
 
 ### Added
 - **Permissions Support** - New "Include Permissions" parameter to retrieve file sharing permissions and access information
@@ -17,29 +17,10 @@ All notable changes to this project will be documented in this file.
   - Works for both fileList (flat array) and tree (hierarchical) output modes
 - **Parameter Ordering** - Alphabetically sorted options for better UI consistency
   - Order: Fields to Return → Include Permissions → Properties to Return → Query String → Return All Fields
-
-### Changed
-- Enhanced DriveFile interface to support permissions data
-- Improved output mapping logic for conditional field inclusion
-
----
-
-## [1.0.1-beta.22] - 2025-10-21
-
-### Fixed
-- **Removed Non-functional Filters**
+- **Removed Non-functional Filters** 
   - Removed "Include Trashed Items" filter (was not working correctly)
   - Removed "Include Starred Only" filter (was not working correctly)
   - Kept working filters: File Type and Property Value filters
-
-### Improved
-- Code cleanup and stability improvements
-
----
-
-## [1.0.1-beta.21] - 2025-10-21
-
-### Fixed
 - **Subtitle Display** - Fixed subtitle to correctly show operation name
   - Tree mode: "Generate Folder Tree"
   - FileList mode: "List All Folders/Files"
@@ -49,6 +30,18 @@ All notable changes to this project will be documented in this file.
   - Now correctly reads from top-level parameters instead of nested options
   - Properly controls whether output is single item or multiple items
 
+### Changed
+- **Parameter Renamed** - `outputMode` renamed to `operation` for better UX
+  - **BREAKING CHANGE**: If you were using `outputMode` parameter, update to `operation`
+  - Values remain the same: "tree" or "fileList"
+  - Allows operations to show in Add Node menu with proper action values
+- **Operations in Sidebar** - Operations now appear in n8n Add Node menu
+  - "Tree (Folder/File Structure)" - Hierarchical tree view of folders and files
+  - "File List (Simple JSON Array)" - Flat array of files and folders
+  - Each operation has its own action value for automation
+- Enhanced DriveFile interface to support permissions data
+- Improved output mapping logic for conditional field inclusion
+
 ### Verified
 - Output structure is correct for n8n integration
 - fileList mode with outputAsItems=FALSE returns single item with array: `[[{ json: [objects] }]]`
@@ -56,28 +49,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [1.0.1-beta.20] - 2025-10-20
-
-### Added
-- **Operations in Sidebar** - Operations now appear in n8n Add Node menu
-  - "Tree (Folder/File Structure)" - Hierarchical tree view of folders and files
-  - "File List (Simple JSON Array)" - Flat array of files and folders
-  - Each operation has its own action value for automation
-
-### Changed
-- **Parameter Renamed** - `outputMode` renamed to `operation` for better UX
-  - **BREAKING CHANGE**: If you were using `outputMode` parameter, update to `operation`
-  - Values remain the same: "tree" or "fileList"
-  - Allows operations to show in Add Node menu with proper action values
-
-### Benefits
-- Better discoverability in n8n UI
-- Easier workflow automation with explicit operation actions
-- Clearer separation between output modes
-
----
-
-## Previous Versions
+## Previous Versions (Beta Releases)
 
 ### Core Features (Implemented in earlier versions)
 - Recursive folder tree generation from Google Drive
