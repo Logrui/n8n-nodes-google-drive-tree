@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.1] - 2025-10-21
+## [1.0.2] - 2025-10-21
 
 ### Added
 - **Permissions Support** - New "Include Permissions" parameter to retrieve file sharing permissions and access information
@@ -49,7 +49,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## Previous Versions (Beta Releases)
+## [1.0.1] - 2025-10-21 (Previous Official Release)
 
 ### Core Features (Implemented in earlier versions)
 - Recursive folder tree generation from Google Drive
