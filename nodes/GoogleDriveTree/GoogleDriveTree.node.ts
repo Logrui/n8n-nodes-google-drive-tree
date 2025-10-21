@@ -813,8 +813,18 @@ export class GoogleDriveTree implements INodeType {
 				const maxDisplayResults = 20;
 
 				try {
+					// Get the selected folder to filter files within it
+					const folderResource = this.getNode()?.parameters?.folder as {
+						mode: string;
+						value: string;
+					} | undefined;
+					const folderId = folderResource?.value || 'root';
+
 					const pageSize = 1000;
-					let q = `trashed=false`;
+					let q = `trashed=false and mimeType!='application/vnd.google-apps.folder'`;
+
+					// Filter files to the selected folder
+					q += ` and '${folderId}' in parents`;
 
 					// Add filter to query if provided
 					if (filter) {
