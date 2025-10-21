@@ -244,6 +244,18 @@ export class GoogleDriveTree implements INodeType {
 				description: 'How to sort the folders when building the tree',
 			},
 			{
+				displayName: 'Metadata Only',
+				name: 'metadataOnly',
+				type: 'boolean',
+				default: false,
+				displayOptions: {
+					show: {
+						operation: ['downloadFile'],
+					},
+				},
+				description: 'Whether to retrieve only file metadata (including properties and permissions) without downloading the file binary',
+			},
+			{
 				displayName: 'Filters',
 				name: 'filters',
 				type: 'collection',
@@ -910,53 +922,62 @@ export class GoogleDriveTree implements INodeType {
 						throw new NodeOperationError(this.getNode(), 'File ID is required');
 					}
 
-					// Get options
-					const options = this.getNodeParameter('options', itemIndex, {}) as Record<string, any>;
-					const binaryPropertyName = (options.binaryPropertyName as string) || 'data';
-					const googleWorkspaceConversion = options.googleWorkspaceConversion as any;
-					const propertiesToReturn = (options.propertiesToReturn as string) || 'both';
-					const fieldsToReturn = (options.fieldsToReturn as string[]) || ['id', 'name', 'mimeType'];
-					const returnAllFields = (options.returnAllFields as boolean) || false;
+				// Get options
+				const options = this.getNodeParameter('options', itemIndex, {}) as Record<string, any>;
+				const binaryPropertyName = (options.binaryPropertyName as string) || 'data';
+				const googleWorkspaceConversion = options.googleWorkspaceConversion as any;
+				const propertiesToReturn = (options.propertiesToReturn as string) || 'both';
+				const fieldsToReturn = (options.fieldsToReturn as string[]) || ['id', 'name', 'mimeType'];
+				const returnAllFields = (options.returnAllFields as boolean) || false;
+				const metadataOnly = (options.metadataOnly as boolean) || false;
 
-					// Build fields parameter based on user selection
-					let fieldsParam: string;
+				// Build fields parameter based on user selection
+				let fieldsParam: string;
+				
+				if (returnAllFields) {
+					// Request all available fields
+					fieldsParam = '*';
+				} else {
+					// Always ensure mimeType and name are included for download logic
+					const fieldsSet = new Set(fieldsToReturn);
+					fieldsSet.add('mimeType');
+					fieldsSet.add('name');
+					fieldsParam = Array.from(fieldsSet).join(',');
 					
-					if (returnAllFields) {
-						// Request all available fields
-						fieldsParam = '*';
-					} else {
-						// Always ensure mimeType and name are included for download logic
-						const fieldsSet = new Set(fieldsToReturn);
-						fieldsSet.add('mimeType');
-						fieldsSet.add('name');
-						fieldsParam = Array.from(fieldsSet).join(',');
-						
-						// Add properties fields if requested
-						if (propertiesToReturn === 'both') {
-							fieldsParam += ',properties,appProperties';
-						} else if (propertiesToReturn === 'properties') {
-							fieldsParam += ',properties';
-						} else if (propertiesToReturn === 'appProperties') {
-							fieldsParam += ',appProperties';
-						}
-						
-						// Always add permissions if Include Permissions is checked
-						if (options.includePermissions === true) {
-							fieldsParam += ',permissions';
-						}
+					// Add properties fields if requested
+					if (propertiesToReturn === 'both') {
+						fieldsParam += ',properties,appProperties';
+					} else if (propertiesToReturn === 'properties') {
+						fieldsParam += ',properties';
+					} else if (propertiesToReturn === 'appProperties') {
+						fieldsParam += ',appProperties';
 					}
+					
+					// Always add permissions if Include Permissions is checked
+					if (options.includePermissions === true) {
+						fieldsParam += ',permissions';
+					}
+				}
 
-					// Get file metadata to determine MIME type and handle conversions
-					const fileMetadata = await this.helpers.requestOAuth2.call(this, 'googleDriveOAuth2Api', {
-						method: 'GET',
-						url: `https://www.googleapis.com/drive/v3/files/${fileId}`,
-						qs: {
-							fields: fieldsParam,
-							supportsAllDrives: true,
-						},
-						json: true,
-					});
+				// Get file metadata to determine MIME type and handle conversions
+				const fileMetadata = await this.helpers.requestOAuth2.call(this, 'googleDriveOAuth2Api', {
+					method: 'GET',
+					url: `https://www.googleapis.com/drive/v3/files/${fileId}`,
+					qs: {
+						fields: fieldsParam,
+						supportsAllDrives: true,
+					},
+					json: true,
+				});
 
+				// If metadata only is enabled, return just the metadata without downloading the file
+				if (metadataOnly) {
+					const newItem: INodeExecutionData = {
+						json: fileMetadata,
+					};
+					returnItems.push(newItem);
+				} else {
+					// Download the file binary
 					let downloadUrl: string;
 					let mimeType = fileMetadata.mimeType;
 
@@ -1015,6 +1036,7 @@ export class GoogleDriveTree implements INodeType {
 					);
 
 					returnItems.push(newItem);
+				}
 				} catch (error) {
 					if (this.continueOnFail()) {
 						returnItems.push({
