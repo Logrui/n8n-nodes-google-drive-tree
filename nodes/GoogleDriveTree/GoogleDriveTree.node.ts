@@ -904,13 +904,44 @@ export class GoogleDriveTree implements INodeType {
 					const options = this.getNodeParameter('options', itemIndex, {}) as Record<string, any>;
 					const binaryPropertyName = (options.binaryPropertyName as string) || 'data';
 					const googleWorkspaceConversion = options.googleWorkspaceConversion as any;
+					const propertiesToReturn = (options.propertiesToReturn as string) || 'both';
+					const fieldsToReturn = (options.fieldsToReturn as string[]) || ['id', 'name', 'mimeType'];
+					const returnAllFields = (options.returnAllFields as boolean) || false;
+
+					// Build fields parameter based on user selection
+					let fieldsParam: string;
+					
+					if (returnAllFields) {
+						// Request all available fields
+						fieldsParam = '*';
+					} else {
+						// Always ensure mimeType and name are included for download logic
+						const fieldsSet = new Set(fieldsToReturn);
+						fieldsSet.add('mimeType');
+						fieldsSet.add('name');
+						fieldsParam = Array.from(fieldsSet).join(',');
+						
+						// Add properties fields if requested
+						if (propertiesToReturn === 'both') {
+							fieldsParam += ',properties,appProperties';
+						} else if (propertiesToReturn === 'properties') {
+							fieldsParam += ',properties';
+						} else if (propertiesToReturn === 'appProperties') {
+							fieldsParam += ',appProperties';
+						}
+						
+						// Always add permissions if Include Permissions is checked
+						if (options.includePermissions === true) {
+							fieldsParam += ',permissions';
+						}
+					}
 
 					// Get file metadata to determine MIME type and handle conversions
 					const fileMetadata = await this.helpers.requestOAuth2.call(this, 'googleDriveOAuth2Api', {
 						method: 'GET',
 						url: `https://www.googleapis.com/drive/v3/files/${fileId}`,
 						qs: {
-							fields: 'mimeType,name',
+							fields: fieldsParam,
 							supportsAllDrives: true,
 						},
 						json: true,
@@ -958,7 +989,7 @@ export class GoogleDriveTree implements INodeType {
 
 					// Prepare binary data
 					const newItem: INodeExecutionData = {
-						json: item.json,
+						json: fileMetadata,
 						binary: {},
 					};
 
