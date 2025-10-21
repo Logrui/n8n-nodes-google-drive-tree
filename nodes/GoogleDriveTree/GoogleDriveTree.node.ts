@@ -9,7 +9,7 @@ import type {
 	INodeListSearchResult,
 } from 'n8n-workflow';
 
-import { NodeConnectionType } from 'n8n-workflow';
+import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
 interface DriveFile {
 	id: string;
@@ -40,7 +40,7 @@ export class GoogleDriveTree implements INodeType {
 		icon: 'file:googleDrive.svg',
 		group: ['transform'],
 		version: 1,
-		subtitle: '={{$parameter["operation"] === "tree" ? "Generate Folder Tree" : "List All Folders/Files"}}',
+		subtitle: '={{$parameter["operation"] === "tree" ? "Generate Folder Tree" : $parameter["operation"] === "fileList" ? "List All Folders/Files" : "Download File"}}',
 		description: 'Recursively builds a folder tree from Google Drive with flexible output modes',
 		defaults: {
 			name: 'Google Drive Recursive',
@@ -71,6 +71,12 @@ export class GoogleDriveTree implements INodeType {
 						value: 'fileList',
 						description: 'Flat array of objects for files and/or folders with parent references',
 						action: 'Get a flat folder and file list',
+					},
+					{
+						name: 'Download File',
+						value: 'downloadFile',
+						description: 'Download a specific file from Google Drive',
+						action: 'Download a file from google drive',
 					},
 				],
 				default: 'tree',
@@ -109,6 +115,65 @@ export class GoogleDriveTree implements INodeType {
 						],
 					},
 				],
+			},
+			{
+				displayName: 'File',
+				name: 'fileId',
+				type: 'resourceLocator',
+				default: { mode: 'id', value: '' },
+				required: true,
+				displayOptions: {
+					show: {
+						operation: ['downloadFile'],
+					},
+				},
+				modes: [
+					{
+						displayName: 'From List',
+						name: 'list',
+						type: 'list',
+						placeholder: 'Select a file',
+						typeOptions: {
+							searchListMethod: 'fileSearch',
+							searchable: true,
+						},
+					},
+					{
+						displayName: 'By URL',
+						name: 'url',
+						type: 'string',
+						placeholder: 'e.g. https://drive.google.com/file/d/1ABC123XYZ789/edit',
+						extractValue: {
+							type: 'regex',
+							regex: '/file/d/([a-zA-Z0-9-_]+)',
+						},
+						validation: [
+							{
+								type: 'regex',
+								properties: {
+									regex: 'drive\\.google\\.com/file/d/[a-zA-Z0-9\\-_]+',
+									errorMessage: 'Not a valid Google Drive File URL',
+								},
+							},
+						],
+					},
+					{
+						displayName: 'By ID',
+						name: 'id',
+						type: 'string',
+						placeholder: 'e.g. 1ABC123XYZ789',
+						validation: [
+							{
+								type: 'regex',
+								properties: {
+									regex: '^[a-zA-Z0-9_-]+$',
+									errorMessage: 'Not a valid file ID',
+								},
+							},
+						],
+					},
+				],
+				description: 'The file to download',
 			},
 			{
 				displayName: 'Include Folders',
@@ -309,6 +374,19 @@ export class GoogleDriveTree implements INodeType {
 				default: {},
 				options: [
 					{
+						displayName: 'Binary Field Name',
+						name: 'binaryPropertyName',
+						type: 'string',
+						default: 'data',
+						displayOptions: {
+							show: {
+								'/operation': ['downloadFile'],
+							},
+						},
+						placeholder: 'e.g. data',
+						description: 'The field name where the binary file data will be stored',
+					},
+					{
 						displayName: 'Fields to Return',
 						name: 'fieldsToReturn',
 						type: 'multiOptions',
@@ -418,6 +496,133 @@ export class GoogleDriveTree implements INodeType {
 						],
 					},
 					{
+						displayName: 'Google Workspace Conversion',
+						name: 'googleWorkspaceConversion',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: false,
+						},
+						default: {},
+						displayOptions: {
+							show: {
+								'/operation': ['downloadFile'],
+							},
+						},
+						placeholder: 'Add Conversion',
+						options: [
+							{
+								displayName: 'Conversion',
+								name: 'conversion',
+								values: [
+									{
+										displayName: 'Google Docs Format',
+										name: 'docsToFormat',
+										type: 'options',
+										options: [
+											{
+												name: 'HTML',
+												value: 'text/html',
+											},
+											{
+												name: 'MS Word Document',
+												value: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+											},
+											{
+												name: 'Open Office Document',
+												value: 'application/vnd.oasis.opendocument.text',
+											},
+											{
+												name: 'PDF',
+												value: 'application/pdf',
+											},
+											{
+												name: 'Rich Text (RTF)',
+												value: 'application/rtf',
+											},
+											{
+												name: 'Text (TXT)',
+												value: 'text/plain',
+											},
+										],
+										default: 'application/pdf',
+										description: 'Export format for Google Docs files',
+									},
+									{
+										displayName: 'Google Sheets Format',
+										name: 'sheetsToFormat',
+										type: 'options',
+										options: [
+											{
+												name: 'CSV',
+												value: 'text/csv',
+											},
+											{
+												name: 'MS Excel',
+												value: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+											},
+											{
+												name: 'Open Office Sheet',
+												value: 'application/vnd.oasis.opendocument.spreadsheet',
+											},
+											{
+												name: 'PDF',
+												value: 'application/pdf',
+											},
+										],
+										default: 'application/pdf',
+										description: 'Export format for Google Sheets files',
+									},
+									{
+										displayName: 'Google Slides Format',
+										name: 'slidesToFormat',
+										type: 'options',
+										options: [
+											{
+												name: 'MS PowerPoint',
+												value: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+											},
+											{
+												name: 'OpenOffice Presentation',
+												value: 'application/vnd.oasis.opendocument.presentation',
+											},
+											{
+												name: 'PDF',
+												value: 'application/pdf',
+											},
+										],
+										default: 'application/pdf',
+										description: 'Export format for Google Slides files',
+									},
+									{
+										displayName: 'Google Drawings Format',
+										name: 'drawingsToFormat',
+										type: 'options',
+										options: [
+											{
+												name: 'JPEG',
+												value: 'image/jpeg',
+											},
+											{
+												name: 'PDF',
+												value: 'application/pdf',
+											},
+											{
+												name: 'PNG',
+												value: 'image/png',
+											},
+											{
+												name: 'SVG',
+												value: 'image/svg+xml',
+											},
+										],
+										default: 'application/pdf',
+										description: 'Export format for Google Drawings files',
+									},
+								],
+							},
+						],
+					},
+					{
 						displayName: 'Include Permissions',
 						name: 'includePermissions',
 						type: 'boolean',
@@ -459,6 +664,11 @@ export class GoogleDriveTree implements INodeType {
 						type: 'string',
 						default: '',
 						placeholder: "e.g. not name contains 'backup'",
+						displayOptions: {
+							show: {
+								'/operation': ['tree', 'fileList'],
+							},
+						},
 						description: 'Advanced Google Drive query string to further filter results. See <a href="https://developers.google.com/drive/api/v3/search-files" target="_blank">Google Drive search documentation</a> for syntax.',
 					},
 					{
@@ -593,14 +803,196 @@ export class GoogleDriveTree implements INodeType {
 					};
 				}
 			},
+
+			async fileSearch(
+				this: ILoadOptionsFunctions,
+				filter?: string,
+				paginationToken?: string,
+			): Promise<INodeListSearchResult> {
+				const returnData: SearchResultItem[] = [];
+				const maxDisplayResults = 20;
+
+				try {
+					const pageSize = 1000;
+					let q = `trashed=false`;
+
+					// Add filter to query if provided
+					if (filter) {
+						q += ` and name contains '${filter.replace(/'/g, "\\'")}'`;
+					}
+
+					const request = async (pageToken?: string) => {
+						const options = {
+							method: 'GET' as const,
+							url: 'https://www.googleapis.com/drive/v3/files',
+							qs: {
+								q,
+								fields: 'files(id,name,mimeType,webViewLink),nextPageToken',
+								pageSize,
+								supportsAllDrives: 'true',
+								includeItemsFromAllDrives: 'true',
+								orderBy: 'name',
+								pageToken: pageToken || undefined,
+							},
+							json: true,
+						};
+
+						return this.helpers.requestOAuth2.call(this, 'googleDriveOAuth2Api', options);
+					};
+
+					let pageToken: string | undefined;
+					let allFiles: Array<{ id: string; name: string; mimeType?: string; webViewLink?: string }> = [];
+					let hasMore = true;
+
+					// Fetch files
+					while (hasMore) {
+						const resp = await request(pageToken);
+						if (resp.files) {
+							allFiles = allFiles.concat(resp.files);
+						}
+						pageToken = resp.nextPageToken;
+						hasMore = !!pageToken;
+					}
+
+					// Sort by name
+					allFiles.sort((a, b) => a.name.localeCompare(b.name));
+
+					// Limit display results and add to return data
+					for (const file of allFiles.slice(0, maxDisplayResults)) {
+						returnData.push({
+							name: file.name,
+							value: file.id,
+							url: file.webViewLink,
+						});
+					}
+
+					return {
+						results: returnData as unknown as INodePropertyOptions[],
+					};
+				} catch (error) {
+					return {
+						results: [] as unknown as INodePropertyOptions[],
+					};
+				}
+			},
 		},
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
-
 		const returnItems: INodeExecutionData[] = [];
+		const operation = this.getNodeParameter('operation', 0) as string;
 
+		// Handle Download File operation separately
+		if (operation === 'downloadFile') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const item = items[itemIndex];
+					
+					// Get file ID from resourceLocator parameter
+					const fileResource = this.getNodeParameter('fileId', itemIndex) as {
+						mode: string;
+						value: string;
+					};
+					const fileId = fileResource?.value || '';
+
+					if (!fileId) {
+						throw new NodeOperationError(this.getNode(), 'File ID is required');
+					}
+
+					// Get options
+					const options = this.getNodeParameter('options', itemIndex, {}) as Record<string, any>;
+					const binaryPropertyName = (options.binaryPropertyName as string) || 'data';
+					const googleWorkspaceConversion = options.googleWorkspaceConversion as any;
+
+					// Get file metadata to determine MIME type and handle conversions
+					const fileMetadata = await this.helpers.requestOAuth2.call(this, 'googleDriveOAuth2Api', {
+						method: 'GET',
+						url: `https://www.googleapis.com/drive/v3/files/${fileId}`,
+						qs: {
+							fields: 'mimeType,name',
+							supportsAllDrives: true,
+						},
+						json: true,
+					});
+
+					let downloadUrl: string;
+					let mimeType = fileMetadata.mimeType;
+
+					// Handle Google Workspace file format conversion
+					if (fileMetadata.mimeType?.includes('vnd.google-apps')) {
+						const type = fileMetadata.mimeType.split('.')[2];
+						let exportMimeType: string;
+
+						if (type === 'document' && googleWorkspaceConversion?.conversion?.docsToFormat) {
+							exportMimeType = googleWorkspaceConversion.conversion.docsToFormat;
+						} else if (type === 'spreadsheet' && googleWorkspaceConversion?.conversion?.sheetsToFormat) {
+							exportMimeType = googleWorkspaceConversion.conversion.sheetsToFormat;
+						} else if (type === 'presentation' && googleWorkspaceConversion?.conversion?.slidesToFormat) {
+							exportMimeType = googleWorkspaceConversion.conversion.slidesToFormat;
+						} else if (type === 'drawing' && googleWorkspaceConversion?.conversion?.drawingsToFormat) {
+							exportMimeType = googleWorkspaceConversion.conversion.drawingsToFormat;
+						} else {
+							// Use defaults
+							if (type === 'document') exportMimeType = 'application/pdf';
+							else if (type === 'spreadsheet') exportMimeType = 'application/pdf';
+							else if (type === 'presentation') exportMimeType = 'application/pdf';
+							else exportMimeType = 'application/pdf';
+						}
+
+						downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}/export`;
+						mimeType = exportMimeType;
+					} else {
+						downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}`;
+					}
+
+					// Download the file
+					const fileData = await this.helpers.requestOAuth2.call(this, 'googleDriveOAuth2Api', {
+						method: 'GET',
+						url: downloadUrl,
+						qs: fileMetadata.mimeType?.includes('vnd.google-apps')
+							? { mimeType: mimeType, supportsAllDrives: true }
+							: { alt: 'media', supportsAllDrives: true },
+						encoding: 'arraybuffer',
+					});
+
+					// Prepare binary data
+					const newItem: INodeExecutionData = {
+						json: item.json,
+						binary: {},
+					};
+
+					if (item.binary !== undefined) {
+						Object.assign(newItem.binary as any, item.binary);
+					}
+
+					const fileName = fileMetadata.name || 'file';
+					newItem.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
+						fileData,
+						fileName,
+						mimeType,
+					);
+
+					returnItems.push(newItem);
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnItems.push({
+							json: {
+								error: (error as Error).message,
+							},
+						});
+						continue;
+					}
+					throw new NodeOperationError(
+						this.getNode(),
+						(error as Error).message || 'Failed to download file',
+					);
+				}
+			}
+			return [returnItems];
+		}
+
+		// Handle Tree and FileList operations
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			// Get folder ID from resourceLocator parameter
 			const folderResource = this.getNodeParameter('folder', itemIndex) as {
