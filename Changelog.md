@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3-beta.3] - 2025-10-21
+
+### Improved
+- **File Search Enhancement** - fileSearch method now provides smarter file selection
+  - Excludes folders from file list (only shows downloadable files)
+  - Automatically filters files within the selected folder context
+  - Defaults to 'root' (My Drive) if no folder is selected
+  - Provides better UX by limiting results to current folder
+  - Name search still applies within the folder context
+
 ## [1.0.3-beta.2] - 2025-10-21
 
 ### Added
