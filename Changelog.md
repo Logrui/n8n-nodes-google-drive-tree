@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3-beta.4] - 2025-10-21
+
+### Added
+- **Metadata Only Toggle** - Download File operation now supports retrieving metadata without downloading the file
+  - New "Metadata Only" boolean option that appears above Filters section
+  - When enabled: retrieves file metadata (id, name, size, owners, created time, etc.) without the binary
+  - Respects all Properties to Return and Fields to Return selections
+  - Useful for workflows that only need file information without the file content
+  - Significantly reduces bandwidth and time for metadata-only workflows
+
 ## [1.0.3-beta.3] - 2025-10-21
 
 ### Improved
