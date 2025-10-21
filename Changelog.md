@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3-beta.5] - 2025-10-21
+
+### Fixed
+- **Metadata Only Toggle** - Fixed critical issues in beta.4 implementation
+  - Fixed execute logic to properly handle metadataOnly flag
+  - Fixed double closing brace causing structural issues
+  - Metadata-only mode now correctly returns only JSON without binary
+  - Properties to Return selections now correctly respected
+  - File download with metadata now works as expected
+  - All properties and appProperties correctly included in responses
+
+## [1.0.3-beta.4] - 2025-10-21
+
+### Added (Reverted due to issues)
+- **Metadata Only Toggle** - Download File operation now supports retrieving metadata without downloading the file
+  - Note: This version had critical bugs that were fixed in beta.5
+
 ## [1.0.3-beta.3] - 2025-10-21
 
 ### Improved

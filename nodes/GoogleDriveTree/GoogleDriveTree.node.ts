@@ -244,6 +244,18 @@ export class GoogleDriveTree implements INodeType {
 				description: 'How to sort the folders when building the tree',
 			},
 			{
+				displayName: 'Metadata Only',
+				name: 'metadataOnly',
+				type: 'boolean',
+				default: false,
+				displayOptions: {
+					show: {
+						operation: ['downloadFile'],
+					},
+				},
+				description: 'Whether to retrieve only file metadata (including properties and permissions) without downloading the file binary',
+			},
+			{
 				displayName: 'Filters',
 				name: 'filters',
 				type: 'collection',
@@ -910,18 +922,17 @@ export class GoogleDriveTree implements INodeType {
 						throw new NodeOperationError(this.getNode(), 'File ID is required');
 					}
 
-					// Get options
-					const options = this.getNodeParameter('options', itemIndex, {}) as Record<string, any>;
-					const binaryPropertyName = (options.binaryPropertyName as string) || 'data';
-					const googleWorkspaceConversion = options.googleWorkspaceConversion as any;
-					const propertiesToReturn = (options.propertiesToReturn as string) || 'both';
-					const fieldsToReturn = (options.fieldsToReturn as string[]) || ['id', 'name', 'mimeType'];
-					const returnAllFields = (options.returnAllFields as boolean) || false;
+				// Get options
+				const options = this.getNodeParameter('options', itemIndex, {}) as Record<string, any>;
+				const binaryPropertyName = (options.binaryPropertyName as string) || 'data';
+				const googleWorkspaceConversion = options.googleWorkspaceConversion as any;
+				const propertiesToReturn = (options.propertiesToReturn as string) || 'both';
+				const fieldsToReturn = (options.fieldsToReturn as string[]) || ['id', 'name', 'mimeType'];
+				const returnAllFields = (options.returnAllFields as boolean) || false;
+				const metadataOnly = (options.metadataOnly as boolean) || false;
 
-					// Build fields parameter based on user selection
-					let fieldsParam: string;
-					
-					if (returnAllFields) {
+				// Build fields parameter based on user selection
+				let fieldsParam: string;					if (returnAllFields) {
 						// Request all available fields
 						fieldsParam = '*';
 					} else {
@@ -956,6 +967,15 @@ export class GoogleDriveTree implements INodeType {
 						},
 						json: true,
 					});
+
+					// If metadata only mode is enabled, return metadata without downloading file
+					if (metadataOnly) {
+						const newItem: INodeExecutionData = {
+							json: fileMetadata,
+						};
+						returnItems.push(newItem);
+						continue;
+					}
 
 					let downloadUrl: string;
 					let mimeType = fileMetadata.mimeType;
